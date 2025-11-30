@@ -1,0 +1,150 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Mis Documentos - Diagnósticos{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title mb-4">
+            <i class="bi bi-file-earmark-text"></i> Mis Documentos - Diagnósticos
+        </h2>
+        <p class="text-muted mb-3">
+            {{ persona.nombre }} {{ persona.apellido }} | Total de diagnósticos: <strong>{{ num_documentos }}</strong>
+        </p>
+
+        {% if documentos %}
+            <div class="accordion" id="documentosAccordion">
+                {% for doc in documentos %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button {% if forloop.first %}{% else %}collapsed{% endif %}" 
+                                    type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#doc{{ forloop.counter }}">
+                                <div class="w-100">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ doc.consulta_fecha|date:"d/m/Y H:i" }}</strong>
+                                            <span class="badge bg-info ms-2">{{ doc.consulta_especialidad }}</span>
+                                        </div>
+                                        <span class="badge bg-success">{{ doc.recetas.count }} recetas</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Motivo: {{ doc.consulta_motivo }}</small>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="doc{{ forloop.counter }}" 
+                             class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                             data-bs-parent="#documentosAccordion">
+                            <div class="accordion-body">
+                                <!-- Diagnóstico -->
+                                <div class="mb-4">
+                                    <h5 class="text-muted mb-3">
+                                        <i class="bi bi-stethoscope"></i> Información del Diagnóstico
+                                    </h5>
+                                    <div class="alert alert-info">
+                                        <p class="mb-2">
+                                            <strong>Descripción:</strong><br>
+                                            {{ doc.diagnostico.descripcion }}
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>Enfermedad:</strong> 
+                                            {{ doc.diagnostico.nombre_enfermedad|default:"No especificada" }}
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>Tipo:</strong> 
+                                            {% if doc.diagnostico.es_cronico %}
+                                                <span class="badge bg-warning text-dark">Enfermedad Crónica</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Enfermedad Aguda</span>
+                                            {% endif %}
+                                        </p>
+                                        <p class="mb-0">
+                                            <strong>Fecha de Emisión:</strong> 
+                                            {{ doc.diagnostico.fecha_emision|date:"d/m/Y H:i" }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Recetas -->
+                                {% if doc.recetas %}
+                                    <div class="mb-4">
+                                        <h5 class="text-muted mb-3">
+                                            <i class="bi bi-capsule"></i> Recetas Médicas
+                                        </h5>
+                                        <div class="list-group">
+                                            {% for receta in doc.recetas %}
+                                                <div class="list-group-item">
+                                                    <div class="d-flex w-100 justify-content-between">
+                                                        <h6 class="mb-1">
+                                                            <strong>{{ receta.medicamento }}</strong>
+                                                        </h6>
+                                                    </div>
+                                                    <p class="mb-2">
+                                                        <strong>Dosis:</strong> {{ receta.dosis }}
+                                                    </p>
+                                                    <p class="mb-0 text-muted">
+                                                        <i class="bi bi-clock"></i> <strong>Horario:</strong> {{ receta.horario }}
+                                                    </p>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning" role="alert">
+                                        <i class="bi bi-exclamation-triangle"></i> 
+                                        No hay recetas asociadas a este diagnóstico.
+                                    </div>
+                                {% endif %}
+
+                                <!-- Botones de acción -->
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="imprimirDocumento({{ doc.consulta_id }})">
+                                        <i class="bi bi-printer"></i> Imprimir Diagnóstico
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
+                                        <i class="bi bi-download"></i> Descargar PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i>
+                <strong>No tienes documentos disponibles.</strong>
+                <p class="mt-2 mb-0">
+                    Una vez que tus citas sean finalizadas y diagnosticadas, los documentos aparecerán aquí.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+    .accordion-button:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+    }
+    .list-group-item {
+        border-left: 4px solid #dc3545;
+        margin-bottom: 0.5rem;
+    }
+    .list-group-item:last-child {
+        margin-bottom: 0;
+    }
+</style>
+
+<script>
+function imprimirDocumento(consultaId) {
+    // Funcionalidad de impresión
+    window.print();
+}
+</script>
+{% endblock %}

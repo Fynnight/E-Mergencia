@@ -1,0 +1,26 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Eliminar Cita{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <h2 class="card-title mb-4">Confirmar Eliminación</h2>
+                <p class="lead">¿Estás seguro de que deseas eliminar esta cita?</p>
+                <p>Fecha: {{ cita.fecha_inicio|date:"d/m/Y H:i" }}</p>
+                <p>Motivo: {{ cita.motivo }}</p>
+                <p>Especialidad: {{ cita.especialidad }}</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Sí, Eliminar Cita</button>
+                        <a href="{% url 'consultar_citas' %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

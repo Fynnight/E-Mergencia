@@ -1,0 +1,113 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Listar Pacientes{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">
+            <i class="bi bi-people"></i> Listar Pacientes
+        </h2>
+        
+        <!-- Resumen de pacientes -->
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i>
+            Total de pacientes registrados: <strong>{{ pacientes|length }}</strong>
+        </div>
+
+        <!-- Tabla de pacientes -->
+        {% if pacientes %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>RUT</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Dirección</th>
+                            <th>Fecha Nacimiento</th>
+                            <th>Consultas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ paciente.rut }}</strong>
+                                </td>
+                                <td>{{ paciente.nombre }}</td>
+                                <td>{{ paciente.apellido }}</td>
+                                <td>
+                                    <a href="mailto:{{ paciente.correo }}">
+                                        {{ paciente.correo }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if paciente.telefono %}
+                                        <a href="tel:{{ paciente.telefono }}">
+                                            {{ paciente.telefono }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paciente.direccion %}
+                                        {{ paciente.direccion }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paciente.fecha_nacimiento %}
+                                        {{ paciente.fecha_nacimiento|date:"d/m/Y" }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ paciente.num_consultas }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'ver_perfil_paciente' paciente.rut %}" 
+                                       class="btn btn-sm btn-info" title="Ver perfil completo">
+                                        <i class="bi bi-eye"></i> Ver Perfil
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i>
+                No hay pacientes registrados en el sistema.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+    .badge {
+        padding: 0.5rem 0.75rem;
+    }
+    a[href^="mailto:"],
+    a[href^="tel:"] {
+        color: #dc3545;
+        text-decoration: none;
+    }
+    a[href^="mailto:"]:hover,
+    a[href^="tel:"]:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}

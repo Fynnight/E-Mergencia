@@ -1,0 +1,24 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-4 mb-4">Bienvenido a E-mergencia</h1>
+    <p class="lead mb-4">Tu plataforma para agendar citas médicas virtuales de forma rápida y sencilla.</p>
+    {% if not request.session.user_rut %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="d-grid gap-3">
+                <button class="btn btn-danger btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">Iniciar Sesión</button>
+                <button class="btn btn-outline-danger btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal">Registrarse</button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <p class="mb-0">Usa las opciones del menú "Mi Cuenta" en la barra de navegación para acceder a todas las funciones.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

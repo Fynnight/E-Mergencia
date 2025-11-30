@@ -1,0 +1,682 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Listar Consultas{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">
+            <i class="bi bi-calendar-check"></i> Listar Consultas
+        </h2>
+        
+        <!-- formulario de filtro -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="rut" class="form-label">Filtrar por RUT del Paciente</label>
+                        <input type="text" class="form-control" id="rut" name="rut" 
+                               value="{{ rut_filtro }}" placeholder="Ej: 12345678-9">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Filtrar
+                        </button>
+                        {% if rut_filtro %}
+                            <a href="{% url 'listar_consultas_medico' %}" class="btn btn-secondary w-100 ms-2">
+                                <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- tabla de consultas -->
+        {% if consultas %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>RUT Paciente</th>
+                            <th>Nombre Paciente</th>
+                            <th>Fecha</th>
+                            <th>Especialidad</th>
+                            <th>Motivo</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for consulta in consultas %}
+                            <tr>
+                                <td>
+                                    <strong>{{ consulta.paciente_rut }}</strong>
+                                </td>
+                                <td>{{ consulta.paciente_nombre }}</td>
+                                <td>
+                                    {{ consulta.fecha_inicio|date:"d/m/Y H:i" }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ consulta.especialidad }}</span>
+                                </td>
+                                <td>
+                                    {{ consulta.motivo|truncatewords:5 }}
+                                </td>
+                                <td>
+                                    {% if consulta.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% elif consulta.estado == 'aceptada' %}
+                                        <span class="badge bg-success">Aceptada</span>
+                                    {% elif consulta.estado == 'cancelada' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% elif consulta.estado == 'aplazada' %}
+                                        <span class="badge bg-secondary">Aplazada</span>
+                                    {% elif consulta.estado == 'finalizada' %}
+                                        <span class="badge bg-info">Finalizada</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Desconocido</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-info ver-detalles-consulta-btn" 
+                                            data-bs-toggle="modal" data-bs-target="#detalleModal"
+                                            data-id="{{ consulta.id }}"
+                                            data-paciente-rut="{{ consulta.paciente_rut }}"
+                                            data-paciente-nombre="{{ consulta.paciente_nombre }}"
+                                            data-paciente-correo="{{ consulta.paciente_correo }}"
+                                            data-motivo="{{ consulta.motivo }}"
+                                            data-sintomas="{{ consulta.sintomas }}"
+                                            data-especialidad="{{ consulta.especialidad }}"
+                                            data-estado="{{ consulta.estado }}"
+                                            data-fecha="{{ consulta.fecha_inicio|date:'d/m/Y H:i' }}"
+                                            data-diagnostico="{{ consulta.diagnostico }}"
+                                            data-razon="{{ consulta.razon_cancelacion }}">
+                                        <i class="bi bi-eye"></i> Ver Detalles
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i>
+                {% if rut_filtro %}
+                    No hay consultas para el paciente con RUT: <strong>{{ rut_filtro }}</strong>
+                {% else %}
+                    No hay consultas registradas en el sistema.
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- modal de detalles de consulta -->
+<div class="modal fade" id="detalleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Detalles de la Consulta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- modal para cancelar consulta -->
+<div class="modal fade" id="cancelarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Cancelar Consulta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCancelar">
+                    <div class="mb-3">
+                        <label for="razonCancelacion" class="form-label">Razón de la Cancelación</label>
+                        <textarea class="form-control" id="razonCancelacion" rows="4" required></textarea>
+                        <div class="form-text">Explica brevemente por qué se cancela esta consulta.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmarCancelacion()">
+                    <i class="bi bi-trash"></i> Confirmar Cancelación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- modal para finalizar consulta -->
+<div class="modal fade" id="finalizarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-check2-square"></i> Finalizar Consulta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFinalizarConsulta">
+                    <!-- Diagnóstico -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Diagnóstico</h6>
+                        <div class="mb-3">
+                            <label for="diagnosisDescripcion" class="form-label">Descripción del Diagnóstico</label>
+                            <textarea class="form-control" id="diagnosisDescripcion" rows="3" placeholder="Describe el diagnóstico del paciente..." required></textarea>
+                        </div>
+                    </div>
+
+                    <!-- seguimiento cronico -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Seguimiento Crónico</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="esCronicoCheck" onchange="toggleCronicoFields()">
+                            <label class="form-check-label" for="esCronicoCheck">
+                                Esta es una enfermedad crónica
+                            </label>
+                        </div>
+                        <div class="mt-3" id="cronicoFields" style="display: none;">
+                            <label for="nombreEnfermedad" class="form-label">Nombre de la Enfermedad</label>
+                            <input type="text" class="form-control" id="nombreEnfermedad" placeholder="Ej: Diabetes, Hipertensión...">
+                            <div class="form-text">Se creará automáticamente un control de seguimiento 7 días después de esta cita.</div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- recetas -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Recetas (Medicamentos)</h6>
+                        <div id="recetasContainer">
+                            <div class="receta-row card p-3 mb-3">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Medicamento</label>
+                                        <input type="text" class="form-control medicamento" placeholder="Ej: Paracetamol">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Dosis</label>
+                                        <input type="text" class="form-control dosis" placeholder="Ej: 500mg">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Horario/Duración</label>
+                                        <input type="text" class="form-control horario" placeholder="Ej: Cada 8h por 3 días">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="eliminarReceta(this)" style="display: none;">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="agregarReceta()">
+                            <i class="bi bi-plus-circle"></i> Agregar otro medicamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarFinalizarConsulta()">
+                    <i class="bi bi-check-circle"></i> Finalizar Consulta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+    .badge {
+        padding: 0.5rem 0.75rem;
+    }
+    .btn-action {
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+    }
+    .toast-notification {
+        background-color: #28a745;
+        color: white;
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease-in-out;
+    }
+    .toast-notification.error {
+        background-color: #dc3545;
+    }
+    .toast-notification.warning {
+        background-color: #ffc107;
+        color: #333;
+    }
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+</style>
+
+<script>
+let consultaIdActual = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.ver-detalles-consulta-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const consulta = {
+                id: this.getAttribute('data-id'),
+                paciente_rut: this.getAttribute('data-paciente-rut'),
+                paciente_nombre: this.getAttribute('data-paciente-nombre'),
+                paciente_correo: this.getAttribute('data-paciente-correo'),
+                motivo: this.getAttribute('data-motivo'),
+                sintomas: this.getAttribute('data-sintomas'),
+                especialidad: this.getAttribute('data-especialidad'),
+                estado: this.getAttribute('data-estado'),
+                fecha_inicio: this.getAttribute('data-fecha'),
+                diagnostico: this.getAttribute('data-diagnostico'),
+                razon_cancelacion: this.getAttribute('data-razon')
+            };
+            consultaIdActual = consulta.id;
+            mostrarDetalleConsulta(consulta);
+        });
+    });
+});
+
+function mostrarDetalleConsulta(consulta) {
+    const estadoBadge = {
+        'pendiente': '<span class="badge bg-warning">Pendiente</span>',
+        'aceptada': '<span class="badge bg-success">Aceptada</span>',
+        'cancelada': '<span class="badge bg-danger">Cancelada</span>',
+        'aplazada': '<span class="badge bg-secondary">Aplazada</span>',
+        'finalizada': '<span class="badge bg-info">Finalizada</span>'
+    };
+
+    let botonesAccion = `
+        <div class="d-flex gap-2 mt-4 flex-wrap">
+    `;
+
+    // boton aceptar (solo si está pendiente)
+    if (consulta.estado === 'pendiente') {
+        botonesAccion += `
+            <button type="button" class="btn btn-success btn-action" onclick="aceptarConsulta(${consulta.id})">
+                <i class="bi bi-check-circle"></i> Aceptar
+            </button>
+        `;
+    }
+
+    // boton cancelar (siempre disponible si no está ya cancelada o finalizada)
+    if (consulta.estado !== 'cancelada' && consulta.estado !== 'finalizada') {
+        botonesAccion += `
+            <button type="button" class="btn btn-danger btn-action" onclick="mostrarModalCancelar(${consulta.id})">
+                <i class="bi bi-x-circle"></i> Cancelar
+            </button>
+        `;
+    }
+
+    // boton aplazar (siempre disponible si no está cancelada o finalizada)
+    if (consulta.estado !== 'cancelada' && consulta.estado !== 'finalizada') {
+        botonesAccion += `
+            <button type="button" class="btn btn-warning btn-action" onclick="aplazarConsulta(${consulta.id})">
+                <i class="bi bi-clock"></i> Aplazar
+            </button>
+        `;
+    }
+
+    // boton finalizar (solo si está aceptada)
+    if (consulta.estado === 'aceptada') {
+        botonesAccion += `
+            <button type="button" class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#finalizarModal" onclick="prepararFinalizarConsulta(${consulta.id})">
+                <i class="bi bi-check2-square"></i> Finalizar
+            </button>
+        `;
+    }
+
+    botonesAccion += '</div>';
+
+    const html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Información del Paciente</h6>
+                <p><strong>RUT:</strong> ${consulta.paciente_rut || 'N/A'}</p>
+                <p><strong>Nombre:</strong> ${consulta.paciente_nombre || 'N/A'}</p>
+                <p><strong>Correo:</strong> ${consulta.paciente_correo || 'N/A'}</p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Estado de la Consulta</h6>
+                <p><strong>Estado:</strong> ${estadoBadge[consulta.estado] || '<span class="badge bg-secondary">Desconocido</span>'}</p>
+                <p><strong>Especialidad:</strong> <span class="badge bg-info">${consulta.especialidad || 'N/A'}</span></p>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Información General</h6>
+                <p><strong>Motivo:</strong> ${consulta.motivo || 'N/A'}</p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Fechas y Diagnóstico</h6>
+                <p><strong>Fecha Programada:</strong> ${consulta.fecha_inicio ? new Date(consulta.fecha_inicio).toLocaleString('es-ES', {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}) : 'N/A'}</p>
+                <p><strong>Diagnóstico:</strong> ${consulta.estado === 'finalizada' ? '<span class="badge bg-success">Realizado</span>' : '<span class="badge bg-warning text-dark">Pendiente</span>'}</p>
+            </div>
+        </div>
+        ${consulta.estado === 'cancelada' && consulta.razon_cancelacion && consulta.razon_cancelacion.trim() !== '' ? `
+            <hr>
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-exclamation-triangle"></i> Razón de Cancelación:</strong>
+                <p class="mt-2 mb-0">${consulta.razon_cancelacion}</p>
+            </div>
+        ` : ''}
+        ${botonesAccion}
+    `;
+
+    document.getElementById('detalleContenido').innerHTML = html;
+}
+
+function aceptarConsulta(consultaId) {
+    if (confirm('¿Estás seguro de que deseas aceptar esta consulta?')) {
+        fetch(`/api/citas-medico/${consultaId}/gestionar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ accion: 'aceptar' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                mostrarToast('✓ ' + data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            }
+        })
+        .catch(error => mostrarToast('Error: ' + error, 'error'));
+    }
+}
+
+function mostrarModalCancelar(consultaId) {
+    consultaIdActual = consultaId;
+    const modalCancelar = new bootstrap.Modal(document.getElementById('cancelarModal'));
+    document.getElementById('razonCancelacion').value = '';
+    modalCancelar.show();
+}
+
+function confirmarCancelacion() {
+    const razon = document.getElementById('razonCancelacion').value;
+    
+    if (!razon.trim()) {
+        mostrarToast('Por favor ingresa una razón para cancelar la consulta.', 'warning');
+        return;
+    }
+
+    fetch(`/api/citas-medico/${consultaIdActual}/gestionar/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({ accion: 'cancelar', razon: razon })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            mostrarToast('✓ ' + data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('cancelarModal')).hide();
+            setTimeout(() => location.reload(), 1500);
+        }
+    })
+    .catch(error => mostrarToast('Error: ' + error, 'error'));
+}
+
+function aplazarConsulta(consultaId) {
+    if (confirm('¿Estás seguro de que deseas aplazar esta consulta?')) {
+        fetch(`/api/citas-medico/${consultaId}/gestionar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ accion: 'aplazar' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                mostrarToast('✓ ' + data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            }
+        })
+        .catch(error => mostrarToast('Error: ' + error, 'error'));
+    }
+}
+
+function getCSRFToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// funciones para finalizar consult
+
+let consultaIdFinalizando = null;
+
+function prepararFinalizarConsulta(consultaId) {
+    consultaIdFinalizando = consultaId;
+    // limpiar formulario
+    document.getElementById('formFinalizarConsulta').reset();
+    document.getElementById('cronicoFields').style.display = 'none';
+    document.getElementById('esCronicoCheck').checked = false;
+    // resetear recetas a una sola
+    const container = document.getElementById('recetasContainer');
+    container.innerHTML = '';
+    agregarReceta();
+}
+
+function toggleCronicoFields() {
+    const isChecked = document.getElementById('esCronicoCheck').checked;
+    const cronicoFields = document.getElementById('cronicoFields');
+    
+    if (isChecked) {
+        cronicoFields.style.display = 'block';
+    } else {
+        cronicoFields.style.display = 'none';
+        document.getElementById('nombreEnfermedad').value = '';
+    }
+}
+
+function agregarReceta() {
+    const container = document.getElementById('recetasContainer');
+    const numRecetas = container.querySelectorAll('.receta-row').length;
+    
+    const newReceta = document.createElement('div');
+    newReceta.className = 'receta-row card p-3 mb-3';
+    newReceta.innerHTML = `
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Medicamento</label>
+                <input type="text" class="form-control medicamento" placeholder="Ej: Paracetamol">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Dosis</label>
+                <input type="text" class="form-control dosis" placeholder="Ej: 500mg">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Horario/Duración</label>
+                <input type="text" class="form-control horario" placeholder="Ej: Cada 8h por 3 días">
+            </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-danger mt-2" onclick="eliminarReceta(this)">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    `;
+    
+    container.appendChild(newReceta);
+    
+    // mostrar boton eliminar solo si hay mas de una receta
+    actualizarBotonesEliminar();
+}
+
+function eliminarReceta(button) {
+    button.closest('.receta-row').remove();
+    actualizarBotonesEliminar();
+}
+
+function actualizarBotonesEliminar() {
+    const recetas = document.querySelectorAll('.receta-row');
+    const botonesEliminar = document.querySelectorAll('.receta-row .btn-danger');
+    
+    if (recetas.length === 1) {
+        botonesEliminar.forEach(btn => btn.style.display = 'none');
+    } else {
+        botonesEliminar.forEach(btn => btn.style.display = 'inline-block');
+    }
+}
+
+function confirmarFinalizarConsulta() {
+    const descripcion = document.getElementById('diagnosisDescripcion').value.trim();
+    const esCronico = document.getElementById('esCronicoCheck').checked;
+    const nombreEnfermedad = document.getElementById('nombreEnfermedad').value.trim();
+    
+    // validar descripcion
+    if (!descripcion) {
+        mostrarToast('Por favor ingresa la descripción del diagnóstico.', 'error');
+        return;
+    }
+    
+    // validar enfermedad si es cronico
+    if (esCronico && !nombreEnfermedad) {
+        mostrarToast('Por favor ingresa el nombre de la enfermedad crónica.', 'error');
+        return;
+    }
+    
+    // recolectar recetas
+    const recetas = [];
+    document.querySelectorAll('.receta-row').forEach(row => {
+        const medicamento = row.querySelector('.medicamento').value.trim();
+        const dosis = row.querySelector('.dosis').value.trim();
+        const horario = row.querySelector('.horario').value.trim();
+        
+        if (medicamento || dosis || horario) {
+            if (!medicamento || !dosis || !horario) {
+                mostrarToast('Todas las recetas deben tener medicamento, dosis y horario.', 'error');
+                throw new Error('Receta incompleta');
+            }
+            recetas.push({ medicamento, dosis, horario });
+        }
+    });
+    
+    // validar que haya al menos una receta
+    if (recetas.length === 0) {
+        mostrarToast('Por favor agrega al menos una receta.', 'error');
+        return;
+    }
+    
+    // construir payload
+    const payload = {
+        descripcion: descripcion,
+        es_cronico: esCronico,
+        nombre_enfermedad: esCronico ? nombreEnfermedad : null,
+        recetas: recetas
+    };
+    
+    // enviar POST a la API
+    fetch(`/api/consultas/${consultaIdFinalizando}/finalizar/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            mostrarToast('✓ Consulta finalizada exitosamente', 'success');
+            // cerrar modal después de 1.5 segundos
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('finalizarModal')).hide();
+                location.reload();
+            }, 1500);
+        } else if (data.error) {
+            mostrarToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => mostrarToast('Error al finalizar la consulta: ' + error, 'error'));
+}
+
+function mostrarToast(mensaje, tipo = 'success') {
+    // crear contenedor si no existe
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    // crear toast
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${tipo}`;
+    
+    // icono segun tipo
+    let icono = '✓';
+    if (tipo === 'error') icono = '✕';
+    else if (tipo === 'warning') icono = '⚠';
+    
+    toast.innerHTML = `<span>${icono}</span><span>${mensaje}</span>`;
+    container.appendChild(toast);
+    
+    // auto-remover después de 3 segundos
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+</script>
+{% endblock %}

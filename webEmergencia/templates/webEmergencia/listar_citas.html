@@ -1,0 +1,293 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Lista de Citas{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title mb-4">Mis Citas - {{ persona.nombre }} {{ persona.apellido }}</h2>
+        {% if citas %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Motivo</th>
+                            <th>Especialidad</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cita in citas %}
+                            <tr>
+                                <td>{{ cita.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                                <td>{{ cita.motivo|truncatewords:5 }}</td>
+                                <td><span class="badge bg-info">{{ cita.especialidad }}</span></td>
+                                <td>
+                                    {% if cita.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% elif cita.estado == 'aceptada' %}
+                                        <span class="badge bg-success">Aceptada</span>
+                                    {% elif cita.estado == 'cancelada' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% elif cita.estado == 'aplazada' %}
+                                        <span class="badge bg-secondary">Aplazada</span>
+                                    {% elif cita.estado == 'finalizada' %}
+                                        <span class="badge bg-info">Finalizada</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Desconocido</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-info ver-detalles-btn" 
+                                            data-bs-toggle="modal" data-bs-target="#detalleModal"
+                                            data-id="{{ cita.id }}"
+                                            data-motivo="{{ cita.motivo }}"
+                                            data-sintomas="{{ cita.sintomas }}"
+                                            data-especialidad="{{ cita.especialidad }}"
+                                            data-estado="{{ cita.estado }}"
+                                            data-fecha="{{ cita.fecha_inicio|date:'Y-m-d H:i' }}"
+                                            data-diagnostico="{{ cita.diagnostico }}"
+                                            data-razon="{{ cita.razon_cancelacion }}"
+                                            data-especialista="{% if cita.especialista_asignado %}{{ cita.especialista_asignado.fk_rutp.nombre }} {{ cita.especialista_asignado.fk_rutp.apellido }}{% endif %}">
+                                        <i class="bi bi-eye"></i> Ver Detalles
+                                    </button>
+                                    {% if cita.estado == 'pendiente' %}
+                                        <a href="{% url 'modificar_cita' cita.id %}" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i> Modificar
+                                        </a>
+                                        <a href="{% url 'eliminar_cita' cita.id %}" class="btn btn-sm btn-danger">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No tienes citas agendadas.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de detalles de cita -->
+<div class="modal fade" id="detalleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Detalles de la Cita</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+    .badge {
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+
+<script>
+// Agregar evento a todos los botones "Ver Detalles"
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.ver-detalles-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const citaId = this.getAttribute('data-id');
+            const cita = {
+                id: citaId,
+                motivo: this.getAttribute('data-motivo'),
+                sintomas: this.getAttribute('data-sintomas'),
+                especialidad: this.getAttribute('data-especialidad'),
+                estado: this.getAttribute('data-estado'),
+                fecha_inicio: this.getAttribute('data-fecha'),
+                diagnostico: this.getAttribute('data-diagnostico'),
+                razon_cancelacion: this.getAttribute('data-razon'),
+                especialista_nombre: this.getAttribute('data-especialista')
+            };
+            mostrarDetalleCita(cita);
+        });
+    });
+});
+
+function mostrarDetalleCita(cita) {
+    const estadoBadge = {
+        'pendiente': '<span class="badge bg-warning">Pendiente</span>',
+        'aceptada': '<span class="badge bg-success">Aceptada</span>',
+        'cancelada': '<span class="badge bg-danger">Cancelada</span>',
+        'aplazada': '<span class="badge bg-secondary">Aplazada</span>',
+        'finalizada': '<span class="badge bg-info">Finalizada</span>'
+    };
+
+    // Convertir fecha de formato Y-m-d H:i a fecha legible
+    let fechaFormato = 'N/A';
+    if (cita.fecha_inicio) {
+        try {
+            const partes = cita.fecha_inicio.split(' ');
+            const fecha = new Date(partes[0] + 'T' + partes[1]);
+            if (!isNaN(fecha)) {
+                fechaFormato = fecha.toLocaleString('es-ES', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        } catch (e) {
+            fechaFormato = cita.fecha_inicio;
+        }
+    }
+
+    let contenido = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Información General</h6>
+                <p><strong>Motivo:</strong> ${cita.motivo || 'N/A'}</p>
+                <p><strong>Especialidad:</strong> <span class="badge bg-info">${cita.especialidad || 'N/A'}</span></p>
+                <p><strong>Síntomas:</strong> ${cita.sintomas || '<span class="text-muted">No especificados</span>'}</p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Estado de la Cita</h6>
+                <p><strong>Estado:</strong> ${estadoBadge[cita.estado] || '<span class="badge bg-secondary">Desconocido</span>'}</p>
+                <p><strong>Fecha Programada:</strong> ${fechaFormato}</p>
+                <div id="diagnostico-section"></div>
+            </div>
+        </div>
+    `;
+
+    if (cita.especialista_nombre && cita.especialista_nombre.trim() !== '') {
+        contenido += `
+            <hr>
+            <div class="alert alert-success">
+                <strong>Especialista Asignado:</strong> ${cita.especialista_nombre}
+            </div>
+        `;
+    }
+
+    // Solo mostrar razón de cancelación si el estado es "cancelada"
+    if (cita.estado === 'cancelada' && cita.razon_cancelacion && cita.razon_cancelacion.trim() !== '') {
+        contenido += `
+            <hr>
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-exclamation-triangle"></i> Razón de Cancelación:</strong>
+                <p class="mt-2 mb-0">${cita.razon_cancelacion}</p>
+            </div>
+        `;
+    }
+
+    // Si la cita está finalizada, agregar botón para ir a Mis Documentos
+    if (cita.estado === 'finalizada') {
+        contenido += `
+            <hr>
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-info-circle"></i>
+                    <strong>El diagnóstico completo está disponible en Mis Documentos</strong>
+                </div>
+                <a href="/mis-documentos/" class="btn btn-sm btn-danger" target="_blank">
+                    <i class="bi bi-file-earmark-text"></i> Ver Documentos
+                </a>
+            </div>
+        `;
+    }
+
+    document.getElementById('detalleContenido').innerHTML = contenido;
+
+    // Si está finalizada, cargar el diagnóstico mediante AJAX
+    if (cita.estado === 'finalizada' && cita.id) {
+        cargarDiagnostico(cita.id);
+    }
+}
+
+function cargarDiagnostico(citaId) {
+    fetch(`/api/consultas/${citaId}/`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al cargar el diagnóstico');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.diagnostico_data) {
+            mostrarDiagnostico(data.diagnostico_data);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const section = document.getElementById('diagnostico-section');
+        if (section) {
+            section.innerHTML = '<p class="text-muted">No se pudo cargar el diagnóstico</p>';
+        }
+    });
+}
+
+function mostrarDiagnostico(diagnostico) {
+    const section = document.getElementById('diagnostico-section');
+    if (!section) return;
+
+    let contenidoDiagnostico = `
+        <hr>
+        <h6 class="text-muted">Diagnóstico</h6>
+        <div class="alert alert-info">
+            <p><strong>Descripción:</strong> ${diagnostico.descripcion || 'N/A'}</p>
+            <p><strong>Enfermedad:</strong> ${diagnostico.nombre_enfermedad || 'No especificada'}</p>
+            <p><strong>Crónico:</strong> ${diagnostico.es_cronico ? 'Sí' : 'No'}</p>
+            <p><strong>Fecha de Emisión:</strong> ${new Date(diagnostico.fecha_emision).toLocaleString('es-ES')}</p>
+    `;
+
+    // Mostrar recetas si existen
+    if (diagnostico.recetas && diagnostico.recetas.length > 0) {
+        contenidoDiagnostico += `
+            <hr class="my-2">
+            <h6 class="mt-3">Recetas:</h6>
+            <div class="list-group">
+        `;
+        
+        diagnostico.recetas.forEach((receta, index) => {
+            contenidoDiagnostico += `
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">Medicamento ${index + 1}</h6>
+                    </div>
+                    <p class="mb-1"><strong>Medicamento:</strong> ${receta.medicamento}</p>
+                    <p class="mb-1"><strong>Dosis:</strong> ${receta.dosis}</p>
+                    <p class="mb-0"><strong>Horario:</strong> ${receta.horario}</p>
+                </div>
+            `;
+        });
+
+        contenidoDiagnostico += `
+            </div>
+        `;
+    }
+
+    contenidoDiagnostico += `
+        </div>
+    `;
+
+    section.innerHTML = contenidoDiagnostico;
+}
+</script>
+{% endblock %}

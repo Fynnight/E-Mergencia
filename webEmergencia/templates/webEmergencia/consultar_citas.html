@@ -1,0 +1,25 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Consultar Citas{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Consultar mis Citas</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.rut.errors }}
+                        {{ form.rut }}
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">Buscar Citas</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

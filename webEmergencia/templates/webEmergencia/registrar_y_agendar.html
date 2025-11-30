@@ -1,0 +1,69 @@
+{% extends 'webEmergencia/base.html' %}
+
+{% block title %}Registro y Agendamiento{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Registro de Nuevo Paciente y Agendamiento</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">RUT</label>
+                            {{ form.rut }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre</label>
+                            {{ form.nombre }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Apellido</label>
+                            {{ form.apellido }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Correo Electrónico</label>
+                            {{ form.correo }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha de Nacimiento</label>
+                            {{ form.fecha_nacimiento }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            {{ form.telefono }}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Dirección</label>
+                            {{ form.direccion }}
+                        </div>
+                        <hr class="my-4">
+                        <h4 class="mb-3">Datos de la Cita</h4>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Motivo de la Consulta</label>
+                            {{ form.motivo }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Especialidad</label>
+                            {{ form.especialidad }}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Síntomas</label>
+                            {{ form.sintomas }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha y Hora</label>
+                            {{ form.fecha_inicio }}
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">Registrar y Agendar Cita</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

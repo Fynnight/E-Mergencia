@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-m48f%et=$h2bczxp^_l$60_#^t@u+)4uj^e4_9(6l!(hv9chh6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.18.219']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.18.219', 'e-mergencia.onrender.com']
 
 # Configuración de Seguridad
 SECURE_SSL_REDIRECT = False  # Cambiar a True en producción

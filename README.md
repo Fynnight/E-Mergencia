@@ -47,3 +47,10 @@ tam123456
 987654321
 Chopper123
 ```
+
+## Guardar progreso en github
+```bash
+git add .
+git commit -m "texto"
+git push
+```

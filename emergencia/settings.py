@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -91,16 +93,28 @@ WSGI_APPLICATION = 'emergencia.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'e-mergenciadb',
-        'USER': 'root',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '3306',
+# Configuración de Base de Datos Híbrida (PostgreSQL)
+if 'DATABASE_URL' in os.environ:
+    # EN PRODUCCIÓN (Render):
+    # Render nos pasa la base de datos automáticamente por la variable DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    # EN LOCAL (PC):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'e-mergenciadb',      # Nombre de la base de datos
+            'USER': 'postgres',           # Usuario por defecto
+            'PASSWORD': 'admin',          # Contraseña de la base de datos
+            'HOST': '127.0.0.1',          # Localhost
+            'PORT': '5432',               # Puerto estándar de Postgres
+        }
+    }
 
 
 # Password validation

@@ -757,6 +757,15 @@ function inicializarAutocompletado() {
             // Ocultar sugerencias al perder el foco
             input.addEventListener('blur', function() {
                 const suggestionsContainer = this.closest('.position-relative').querySelector('.medicamento-suggestions');
+                if (suggestionsContainer) {
+                    suggestionsContainer.style.position = 'absolute';
+                    suggestionsContainer.style.zIndex = '10000';
+                    suggestionsContainer.style.backgroundColor = 'white';
+                    suggestionsContainer.style.border = '1px solid #ccc';
+                    suggestionsContainer.style.width = '100%';
+                    suggestionsContainer.style.maxHeight = '200px';
+                    suggestionsContainer.style.overflowY = 'auto';
+                    }
                 // Esperar un poco para permitir click en sugerencias
                 setTimeout(() => {
                     suggestionsContainer.style.display = 'none';

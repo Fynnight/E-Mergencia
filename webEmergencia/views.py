@@ -12,6 +12,7 @@ import bcrypt
 import requests
 from django.db import transaction
 from datetime import timedelta
+from deep_translator import GoogleTranslator
 
 # Helper function para determinar el rol del usuario
 def get_user_role(request):
@@ -189,13 +190,10 @@ def consulta_list(request):
         return Response({'error': 'Usuario no autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
     
     if request.method == 'GET':
-        # Si es paciente, devuelve solo sus consultas
         if rol_string == 'paciente':
             consultas = Consulta.objects.filter(fk_idpaciente=rol_obj).order_by('-fecha_inicio')
-        # Si es médico, devuelve todas las consultas (con filtro opcional por RUT de paciente)
         elif rol_string == 'medico':
             consultas = Consulta.objects.all().order_by('-fecha_inicio')
-            # Filtrar por RUT de paciente si se proporciona
             rut_paciente = request.query_params.get('rut_paciente')
             if rut_paciente:
                 try:
@@ -609,54 +607,42 @@ def finalizar_consulta_view(request, pk):
         return Response({'error': f'Error al finalizar la consulta: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def buscar_medicamentos_api(request):
-    """
-    Vista proxy para buscar medicamentos en la API de la FDA.
-    Toma el parámetro 'q' de la URL y busca en OpenFDA.
+    query = request.GET.get('q', '')
     
-    Uso: /api/buscar-medicamentos/?q=paracetamol
-    Retorna: {"medicamentos": ["Paracetamol", "Paracetamol Extra", ...]}
-    """
-    q = request.GET.get('q', '').strip()
-    
-    # Si la búsqueda es muy corta, retornar lista vacía
-    if len(q) < 2:
-        return JsonResponse({'medicamentos': []})
-    
+    if not query or len(query) < 3:
+        return JsonResponse([], safe=False)
+
     try:
-        # Hacer solicitud a la API de FDA
-        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{q}*&limit=10"
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()  # Lanzar excepción si hay error HTTP
+        # 1. TRADUCIR LA BÚSQUEDA (Español -> Inglés)
+        # Esto permite buscar "Acido" y que la API entienda "Acid"
+        translator_es_en = GoogleTranslator(source='es', target='en')
+        query_en = translator_es_en.translate(query)
         
+        # 2. CONSULTAR A OPENFDA (En inglés)
+        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{query_en}*&limit=5"
+        response = requests.get(url)
         data = response.json()
-        medicamentos = []
         
-        # Extraer nombres de medicamentos del resultado
+        resultados_en = []
         if 'results' in data:
-            for result in data['results']:
-                if 'openfda' in result and 'brand_name' in result['openfda']:
-                    # Extraer primer nombre de marca (puede haber múltiples)
-                    nombres = result['openfda']['brand_name']
-                    if isinstance(nombres, list):
-                        for nombre in nombres:
-                            if nombre not in medicamentos:  # Evitar duplicados
-                                medicamentos.append(nombre)
-                    else:
-                        if nombres not in medicamentos:
-                            medicamentos.append(nombres)
-                    
-                    # Limitar a 10 resultados
-                    if len(medicamentos) >= 10:
-                        break
+            for item in data['results']:
+                if 'openfda' in item and 'brand_name' in item['openfda']:
+                    # Guardamos el nombre en inglés temporalmente
+                    brand_name = item['openfda']['brand_name'][0]
+                    resultados_en.append(brand_name)
         
-        return JsonResponse({'medicamentos': medicamentos[:10]})
-    
-    except requests.exceptions.Timeout:
-        # Timeout en la solicitud
-        return JsonResponse({'medicamentos': [], 'error': 'Timeout en la búsqueda'}, status=408)
-    except requests.exceptions.RequestException as e:
-        # Error en la solicitud a la API
-        return JsonResponse({'medicamentos': [], 'error': 'Error al conectar con la API'}, status=503)
+        # 3. TRADUCIR RESULTADOS DE VUELTA (Inglés -> Español)
+        # Si hay resultados, los traducimos todos juntos para que sea rápido
+        resultados_es = []
+        if resultados_en:
+            translator_en_es = GoogleTranslator(source='en', target='es')
+            # translate_batch toma una lista y devuelve una lista traducida
+            resultados_es = translator_en_es.translate_batch(resultados_en)
+
+        # 4. DEVOLVER LA LISTA EN ESPAÑOL
+        return JsonResponse(resultados_es, safe=False)
+
     except Exception as e:
-        # Error general
-        return JsonResponse({'medicamentos': [], 'error': str(e)}, status=500)
+        print(f"Error en API o Traducción: {e}")
+        # En caso de error, devolvemos una lista vacía para no romper el frontend
+        return JsonResponse([], safe=False)

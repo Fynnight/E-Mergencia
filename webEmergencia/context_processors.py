@@ -1,13 +1,7 @@
-"""
-Context processors para inyectar variables globales en todos los templates
-"""
 from .models import Persona, Paciente, Especialista
 
 
 def user_role_context(request):
-    """
-    Inyecta el rol del usuario en el contexto de todos los templates
-    """
     user_role = None
     user_rut = request.session.get('user_rut')
     

@@ -10,8 +10,6 @@ class PersonaAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """Sobreescribe save_model para hashear la contraseña"""
-        # Si la contraseña no comienza con los prefijos de hash conocidos,
-        # entonces hashéala (es una contraseña en texto plano)
         if obj.contrasena and not (
             obj.contrasena.startswith('pbkdf2_sha256$') or
             obj.contrasena.startswith('bcrypt$') or

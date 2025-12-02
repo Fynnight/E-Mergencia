@@ -626,40 +626,36 @@ def finalizar_consulta_view(request, pk):
 def buscar_medicamentos_api(request):
     query = request.GET.get('q', '')
     
+    # Validación básica
     if not query or len(query) < 3:
         return JsonResponse([], safe=False)
 
     try:
-        # 1. TRADUCIR LA BÚSQUEDA (Español -> Inglés)
-        # Esto permite buscar "Acido" y que la API entienda "Acid"
-        translator_es_en = GoogleTranslator(source='es', target='en')
-        query_en = translator_es_en.translate(query)
+        # Consulta DIRECTA a OpenFDA (Sin traducción)
+        # El * al final sirve como comodín (ej: "Ibupro" encuentra "Ibuprofen")
+        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{query}*&limit=5"
         
-        # 2. CONSULTAR A OPENFDA (En inglés)
-        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{query_en}*&limit=5"
-        response = requests.get(url)
+        response = requests.get(url, timeout=5) # Timeout para que no se quede pegado
+        
+        # Si la API responde con error (ej. no encontrado), devolvemos lista vacía
+        if response.status_code != 200:
+            return JsonResponse([], safe=False)
+            
         data = response.json()
+        resultados = []
         
-        resultados_en = []
         if 'results' in data:
             for item in data['results']:
+                # Verificamos que tenga la info de marca
                 if 'openfda' in item and 'brand_name' in item['openfda']:
-                    # Guardamos el nombre en inglés temporalmente
-                    brand_name = item['openfda']['brand_name'][0]
-                    resultados_en.append(brand_name)
+                    # Agregamos el nombre original (en Inglés)
+                    resultados.append(item['openfda']['brand_name'][0])
         
-        # 3. TRADUCIR RESULTADOS DE VUELTA (Inglés -> Español)
-        # Si hay resultados, los traducimos todos juntos para que sea rápido
-        resultados_es = []
-        if resultados_en:
-            translator_en_es = GoogleTranslator(source='en', target='es')
-            # translate_batch toma una lista y devuelve una lista traducida
-            resultados_es = translator_en_es.translate_batch(resultados_en)
-
-        # 4. DEVOLVER LA LISTA EN ESPAÑOL
-        return JsonResponse(resultados_es, safe=False)
+        # Eliminamos duplicados por si acaso
+        resultados = list(set(resultados))
+        
+        return JsonResponse(resultados, safe=False)
 
     except Exception as e:
-        print(f"Error en API o Traducción: {e}")
-        # En caso de error, devolvemos una lista vacía para no romper el frontend
+        print(f"Error en API OpenFDA: {e}")
         return JsonResponse([], safe=False)

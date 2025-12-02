@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils.crypto import get_random_string
+from django.http import JsonResponse
 from .models import Persona, Paciente, Consulta, Especialista, Diagnostico, Receta
 from .forms import VerificarRutForm, RegistroCompletoForm, CitaForm
 from rest_framework.response import Response
@@ -8,6 +9,7 @@ from rest_framework.decorators import api_view
 from rest_framework import status
 from .serializers import ConsultaSerializer, DiagnosticoSerializer
 import bcrypt
+import requests
 from django.db import transaction
 from datetime import timedelta
 
@@ -605,3 +607,56 @@ def finalizar_consulta_view(request, pk):
     
     except Exception as e:
         return Response({'error': f'Error al finalizar la consulta: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def buscar_medicamentos_api(request):
+    """
+    Vista proxy para buscar medicamentos en la API de la FDA.
+    Toma el parámetro 'q' de la URL y busca en OpenFDA.
+    
+    Uso: /api/buscar-medicamentos/?q=paracetamol
+    Retorna: {"medicamentos": ["Paracetamol", "Paracetamol Extra", ...]}
+    """
+    q = request.GET.get('q', '').strip()
+    
+    # Si la búsqueda es muy corta, retornar lista vacía
+    if len(q) < 2:
+        return JsonResponse({'medicamentos': []})
+    
+    try:
+        # Hacer solicitud a la API de FDA
+        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{q}*&limit=10"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()  # Lanzar excepción si hay error HTTP
+        
+        data = response.json()
+        medicamentos = []
+        
+        # Extraer nombres de medicamentos del resultado
+        if 'results' in data:
+            for result in data['results']:
+                if 'openfda' in result and 'brand_name' in result['openfda']:
+                    # Extraer primer nombre de marca (puede haber múltiples)
+                    nombres = result['openfda']['brand_name']
+                    if isinstance(nombres, list):
+                        for nombre in nombres:
+                            if nombre not in medicamentos:  # Evitar duplicados
+                                medicamentos.append(nombre)
+                    else:
+                        if nombres not in medicamentos:
+                            medicamentos.append(nombres)
+                    
+                    # Limitar a 10 resultados
+                    if len(medicamentos) >= 10:
+                        break
+        
+        return JsonResponse({'medicamentos': medicamentos[:10]})
+    
+    except requests.exceptions.Timeout:
+        # Timeout en la solicitud
+        return JsonResponse({'medicamentos': [], 'error': 'Timeout en la búsqueda'}, status=408)
+    except requests.exceptions.RequestException as e:
+        # Error en la solicitud a la API
+        return JsonResponse({'medicamentos': [], 'error': 'Error al conectar con la API'}, status=503)
+    except Exception as e:
+        # Error general
+        return JsonResponse({'medicamentos': [], 'error': str(e)}, status=500)

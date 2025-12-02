@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/consultas/<int:pk>/finalizar/', views.finalizar_consulta_view, name='finalizar_consulta'),
     path('api/citas-medico/<int:pk>/gestionar/', views.gestionar_cita_medico, name='gestionar_cita_medico'),
     path('api/paciente/<str:rut_paciente>/perfil/', views.ver_perfil_paciente, name='ver_perfil_paciente'),
+    path('api/buscar-medicamentos/', views.buscar_medicamentos_api, name='buscar_medicamentos'),
     
     # Auth API URLs
     path('api/auth/login/', auth_views.login_view, name='api_login'),

@@ -142,6 +142,9 @@
         </div>
     </nav>
 
+    <!-- Bloque para contenido full-width (ej: hero) -->
+    {% block fullwidth_content %}{% endblock %}
+
     <div class="container main-container">
         {% if messages %}
             {% for message in messages %}

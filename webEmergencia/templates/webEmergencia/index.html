@@ -3,22 +3,52 @@
 
 {% block title %}Inicio{% endblock %}
 
-{% block content %}
+{% block fullwidth_content %}
 
 <!-- Hero Section - Full Screen Minimalista -->
 <div class="hero" style="background-image: linear-gradient(135deg, rgba(2, 132, 199, 0.85), rgba(10, 84, 139, 0.85)), url('{% static 'img/fondo_home.jpg' %}'); background-size: cover; background-position: center;">
     <div class="hero-content">
-        <h1>Bienvenido a E-mergencia</h1>
-        <p>Tu plataforma confiable para consultas médicas digitales. Conecta con especialistas calificados desde cualquier lugar.</p>
-        
-        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
-                <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
-            </button>
-            <button class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
-                <i class="bi bi-person-plus"></i> Registrarse
-            </button>
-        </div>
+        {% if request.session.user_rut %}
+            <!-- Usuario Logueado -->
+            <h1>Hola, {{ persona.nombre }}</h1>
+            <p>Bienvenido de vuelta a E-mergencia</p>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                {% if es_especialista %}
+                    <!-- Botones para Médico/Especialista -->
+                    <a href="{% url 'listar_consultas_medico' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-calendar-check"></i> Listar Consultas
+                    </a>
+                    <a href="{% url 'listar_pacientes' %}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-people"></i> Listar Pacientes
+                    </a>
+                {% else %}
+                    <!-- Botones para Paciente -->
+                    <a href="{% url 'agendar_nueva_cita' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-calendar-plus"></i> Agendar Cita
+                    </a>
+                    <a href="{% url 'consultar_citas' %}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-list-check"></i> Mis Citas
+                    </a>
+                    <a href="{% url 'mis_documentos' %}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-file-earmark-text"></i> Mis Documentos
+                    </a>
+                {% endif %}
+            </div>
+        {% else %}
+            <!-- Usuario No Logueado -->
+            <h1>Bienvenido a E-mergencia</h1>
+            <p>Tu plataforma confiable para consultas médicas digitales. Conecta con especialistas calificados desde cualquier lugar.</p>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                </button>
+                <button class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <i class="bi bi-person-plus"></i> Registrarse
+                </button>
+            </div>
+        {% endif %}
     </div>
 </div>
 

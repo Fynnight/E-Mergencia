@@ -47,7 +47,24 @@ def get_user_role(request):
     return None, None, None
 
 def index(request):
-    return render(request, 'webEmergencia/index.html')
+    context = {}
+    
+    # Verificar si el usuario está logueado
+    if 'user_rut' in request.session:
+        rut = request.session.get('user_rut')
+        try:
+            # Obtener el objeto Persona
+            persona = Persona.objects.get(rut=rut)
+            context['persona'] = persona
+            
+            # Verificar si es Especialista
+            es_especialista = Especialista.objects.filter(fk_rutp=persona).exists()
+            context['es_especialista'] = es_especialista
+        except Persona.DoesNotExist:
+            # Si la persona no existe, limpiar sesión
+            request.session.flush()
+    
+    return render(request, 'webEmergencia/index.html', context)
 
 def verificar_rut(request):
     if request.method == 'POST':

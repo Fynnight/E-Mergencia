@@ -88,7 +88,7 @@
                                 
                                 {# Verificar rol del usuario - Especialista tiene prioridad #}
                                 {% if user_role == 'especialista' or request.session.user_rol == 'especialista' %}
-                                    <!-- Opciones para Especialista/Médico -->
+                                    <!-- Opciones para Especialista -->
                                     <li>
                                         <a class="dropdown-item" href="{% url 'listar_consultas_medico' %}">
                                             <i class="bi bi-calendar-check"></i> Listar Consultas
@@ -142,7 +142,7 @@
         </div>
     </nav>
 
-    <!-- Bloque para contenido full-width (ej: hero) -->
+    <!-- Bloque para contenido full-width -->
     {% block fullwidth_content %}{% endblock %}
 
     <div class="container main-container">

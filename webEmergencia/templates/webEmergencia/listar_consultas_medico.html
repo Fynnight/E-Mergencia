@@ -685,12 +685,10 @@ function mostrarToast(mensaje, tipo = 'success') {
     }, 3000);
 }
 
-// ===== AUTOCOMPLETADO DE MEDICAMENTOS =====
+// AUTOCOMPLETADO DE MEDICAMENTOS
 document.addEventListener('DOMContentLoaded', function() {
-    // Agregar listeners a todos los inputs de medicamento existentes
     inicializarAutocompletado();
     
-    // Observer para inputs dinámicos (cuando se agrega una receta)
     const container = document.getElementById('recetasContainer');
     if (container) {
         const observer = new MutationObserver(function() {
@@ -702,75 +700,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function inicializarAutocompletado() {
     document.querySelectorAll('.medicamento').forEach(input => {
-        // Evitar agregar el listener múltiples veces
-        if (!input.hasAttribute('data-autocomplete-init')) {
-            input.setAttribute('data-autocomplete-init', 'true');
+        if (input.hasAttribute('data-autocomplete-init')) return;
+        input.setAttribute('data-autocomplete-init', 'true');
+        
+        input.addEventListener('input', function() {
+            const valor = this.value.trim();
+            const positionRelative = this.closest('.position-relative');
+            const suggestionsContainer = positionRelative.querySelector('.medicamento-suggestions');
             
-            input.addEventListener('input', function() {
-                const valor = this.value.trim();
-                const suggestionsContainer = this.closest('.position-relative').querySelector('.medicamento-suggestions');
-                
-                // Si el valor es muy corto, ocultar sugerencias
-                if (valor.length < 2) {
-                    suggestionsContainer.style.display = 'none';
-                    return;
-                }
-                
-                // Hacer llamada a la API local
-                fetch(`/api/buscar-medicamentos/?q=${encodeURIComponent(valor)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const medicamentos = data.medicamentos || [];
+            if (valor.length < 2) {
+                suggestionsContainer.style.display = 'none';
+                return;
+            }
+            
+            fetch(`/api/buscar-medicamentos/?q=${encodeURIComponent(valor)}`)
+                .then(response => response.json())
+                .then(medicamentos => {
+                    suggestionsContainer.innerHTML = '';
+                    
+                    if (!medicamentos || medicamentos.length === 0) {
+                        suggestionsContainer.style.display = 'none';
+                        return;
+                    }
+                    
+                    medicamentos.forEach(medicamento => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action';
+                        li.textContent = medicamento;
+                        li.style.cursor = 'pointer';
                         
-                        // Limpiar sugerencias anteriores
-                        suggestionsContainer.innerHTML = '';
-                        
-                        if (medicamentos.length === 0) {
+                        li.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            input.value = medicamento;
                             suggestionsContainer.style.display = 'none';
-                            return;
-                        }
-                        
-                        // Mostrar sugerencias
-                        medicamentos.forEach(medicamento => {
-                            const li = document.createElement('li');
-                            li.className = 'list-group-item list-group-item-action';
-                            li.textContent = medicamento;
-                            li.style.cursor = 'pointer';
-                            
-                            li.addEventListener('click', function() {
-                                input.value = medicamento;
-                                suggestionsContainer.style.display = 'none';
-                                input.focus();
-                            });
-                            
-                            suggestionsContainer.appendChild(li);
                         });
                         
-                        suggestionsContainer.style.display = 'block';
-                    })
-                    .catch(error => {
-                        console.error('Error en autocompletado:', error);
-                        suggestionsContainer.style.display = 'none';
+                        suggestionsContainer.appendChild(li);
                     });
-            });
-            
-            // Ocultar sugerencias al perder el foco
-            input.addEventListener('blur', function() {
-                const suggestionsContainer = this.closest('.position-relative').querySelector('.medicamento-suggestions');
-                // Esperar un poco para permitir click en sugerencias
-                setTimeout(() => {
+                    
+                    suggestionsContainer.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     suggestionsContainer.style.display = 'none';
-                }, 200);
-            });
-            
-            // Ocultar sugerencias al presionar Escape
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    const suggestionsContainer = this.closest('.position-relative').querySelector('.medicamento-suggestions');
-                    suggestionsContainer.style.display = 'none';
-                }
-            });
-        }
+                });
+        });
+        
+        input.addEventListener('blur', function() {
+            const positionRelative = this.closest('.position-relative');
+            const suggestionsContainer = positionRelative.querySelector('.medicamento-suggestions');
+            setTimeout(() => {
+                suggestionsContainer.style.display = 'none';
+            }, 150);
+        });
+        
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const positionRelative = this.closest('.position-relative');
+                const suggestionsContainer = positionRelative.querySelector('.medicamento-suggestions');
+                suggestionsContainer.style.display = 'none';
+            }
+        });
     });
 }
 </script>

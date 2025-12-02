@@ -14,13 +14,7 @@ from django.db import transaction
 from datetime import timedelta
 from deep_translator import GoogleTranslator
 
-# Helper function para determinar el rol del usuario
 def get_user_role(request):
-    """
-    Determina el rol del usuario (paciente o medico) basado en la sesión.
-    Retorna una tupla: (persona_obj, rol_obj, rol_string)
-    Retorna (None, None, None) si no hay usuario autenticado o no existe el rol.
-    """
     rut = request.session.get('user_rut')
     if not rut:
         return None, None, None
@@ -198,7 +192,6 @@ def eliminar_cita(request, cita_id):
     
     return render(request, 'webEmergencia/eliminar_cita.html', {'cita': cita})
 
-# API Views
 @api_view(['GET', 'POST'])
 def consulta_list(request):
     persona, rol_obj, rol_string = get_user_role(request)
@@ -226,11 +219,9 @@ def consulta_list(request):
         return Response(serializer.data)
     
     elif request.method == 'POST':
-        # Solo los pacientes pueden crear consultas
         if rol_string != 'paciente':
             return Response({'error': 'Solo los pacientes pueden crear consultas'}, status=status.HTTP_403_FORBIDDEN)
         
-        # Añadir automáticamente el paciente a los datos
         data = request.data.copy()
         data['fk_idpaciente'] = rol_obj.id
         
@@ -298,9 +289,6 @@ def consulta_detail(request, pk):
 
 @api_view(['POST', 'PUT'])
 def gestionar_cita_medico(request, pk):
-    """
-    Vista para que los médicos gestionen citas (aceptar, cancelar, aplazar).
-    """
     persona, rol_obj, rol_string = get_user_role(request)
     
     if not persona:
@@ -345,10 +333,6 @@ def gestionar_cita_medico(request, pk):
 
 @api_view(['GET'])
 def ver_perfil_paciente(request, rut_paciente):
-    """
-    Vista para que los médicos vean el perfil de un paciente.
-    Solo los médicos pueden acceder a esta vista.
-    """
     persona, rol_obj, rol_string = get_user_role(request)
     
     if not persona:
@@ -385,10 +369,6 @@ def ver_perfil_paciente(request, rut_paciente):
     return Response(data, status=status.HTTP_200_OK)
 
 def listar_consultas_medico(request):
-    """
-    Vista para que los médicos vean todas las consultas de todos los pacientes.
-    Permite filtrar por RUT del paciente.
-    """
     persona, rol_obj, rol_string = get_user_role(request)
     
     if not persona:
@@ -427,9 +407,6 @@ def listar_consultas_medico(request):
     return render(request, 'webEmergencia/listar_consultas_medico.html', context)
 
 def listar_pacientes(request):
-    """
-    Vista para que los médicos vean todos los pacientes registrados.
-    """
     persona, rol_obj, rol_string = get_user_role(request)
     
     if not persona:
@@ -467,10 +444,6 @@ def listar_pacientes(request):
     return render(request, 'webEmergencia/listar_pacientes.html', context)
 
 def mis_documentos(request):
-    """
-    Vista para que los pacientes vean todos sus diagnósticos.
-    Ordena por fecha de la consulta médica.
-    """
     rut = request.session.get('user_rut')
     if not rut:
         messages.error(request, 'Debe iniciar sesión para ver sus documentos.')
@@ -514,21 +487,7 @@ def mis_documentos(request):
 
 @api_view(['POST'])
 def finalizar_consulta_view(request, pk):
-    """
-    Vista para que los especialistas finalicen una consulta.
-    Crea Diagnostico, Recetas y, si es crónico, crea automáticamente una consulta de seguimiento.
-    
-    Estructura esperada del JSON:
-    {
-        "descripcion": "Descripción del diagnóstico",
-        "es_cronico": true,
-        "nombre_enfermedad": "Diabetes",
-        "recetas": [
-            {"medicamento": "Paracetamol", "dosis": "500mg", "horario": "Cada 8 horas por 3 días"},
-            {"medicamento": "Ibuprofen", "dosis": "400mg", "horario": "Cada 6 horas por 5 días"}
-        ]
-    }
-    """
+
     # 1. Validaciones: Obtener usuario desde request.session['rut']
     rut = request.session.get('user_rut')
     if not rut:
@@ -554,10 +513,8 @@ def finalizar_consulta_view(request, pk):
     if consulta.estado != 'aceptada':
         return Response({'error': f'La consulta debe estar en estado "aceptada", estado actual: {consulta.estado}'}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Usar transaction.atomic para garantizar integridad
     try:
         with transaction.atomic():
-            # A. Crear Diagnostico
             descripcion = request.data.get('descripcion')
             es_cronico = request.data.get('es_cronico', False)
             nombre_enfermedad = request.data.get('nombre_enfermedad', None)
@@ -572,7 +529,6 @@ def finalizar_consulta_view(request, pk):
                 nombre_enfermedad=nombre_enfermedad if es_cronico else None
             )
             
-            # B. Crear Recetas (Lista)
             recetas_data = request.data.get('recetas', [])
             if not isinstance(recetas_data, list):
                 return Response({'error': 'Las recetas deben ser una lista'}, status=status.HTTP_400_BAD_REQUEST)
@@ -592,12 +548,9 @@ def finalizar_consulta_view(request, pk):
                     horario=horario
                 )
             
-            # C. Lógica Crónico (Automática)
             if es_cronico and nombre_enfermedad:
-                # Calcular nueva fecha: Sumar 7 días a la fecha de la consulta actual
                 fecha_seguimiento = consulta.fecha_inicio + timedelta(days=7)
                 
-                # Crear nueva Consulta de seguimiento
                 Consulta.objects.create(
                     fk_idpaciente=consulta.fk_idpaciente,
                     fk_idespecialista=consulta.fk_idespecialista,
@@ -608,11 +561,9 @@ def finalizar_consulta_view(request, pk):
                     estado='aceptada'
                 )
             
-            # D. Cambiar estado de consulta original a 'finalizada'
             consulta.estado = 'finalizada'
             consulta.save()
             
-            # E. Retornar respuesta 200 OK con datos
             serializer = ConsultaSerializer(consulta)
             return Response({
                 'message': 'Consulta finalizada exitosamente',
@@ -626,18 +577,13 @@ def finalizar_consulta_view(request, pk):
 def buscar_medicamentos_api(request):
     query = request.GET.get('q', '')
     
-    # Validación básica
-    if not query or len(query) < 3:
+    if not query or len(query) < 2:
         return JsonResponse([], safe=False)
 
     try:
-        # Consulta DIRECTA a OpenFDA (Sin traducción)
-        # El * al final sirve como comodín (ej: "Ibupro" encuentra "Ibuprofen")
-        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{query}*&limit=5"
+        url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{query}*&limit=10"
+        response = requests.get(url, timeout=5)
         
-        response = requests.get(url, timeout=5) # Timeout para que no se quede pegado
-        
-        # Si la API responde con error (ej. no encontrado), devolvemos lista vacía
         if response.status_code != 200:
             return JsonResponse([], safe=False)
             
@@ -646,16 +592,13 @@ def buscar_medicamentos_api(request):
         
         if 'results' in data:
             for item in data['results']:
-                # Verificamos que tenga la info de marca
                 if 'openfda' in item and 'brand_name' in item['openfda']:
-                    # Agregamos el nombre original (en Inglés)
-                    resultados.append(item['openfda']['brand_name'][0])
+                    for brand in item['openfda']['brand_name']:
+                        if brand not in resultados:
+                            resultados.append(brand)
         
-        # Eliminamos duplicados por si acaso
-        resultados = list(set(resultados))
-        
-        return JsonResponse(resultados, safe=False)
+        return JsonResponse(resultados[:10], safe=False)
 
     except Exception as e:
-        print(f"Error en API OpenFDA: {e}")
+        print(f"Error en OpenFDA: {e}")
         return JsonResponse([], safe=False)

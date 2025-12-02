@@ -57,7 +57,7 @@
                                         <a href="{% url 'modificar_cita' cita.id %}" class="btn btn-sm btn-warning">
                                             <i class="bi bi-pencil"></i> Modificar
                                         </a>
-                                        <a href="{% url 'eliminar_cita' cita.id %}" class="btn btn-sm btn-danger">
+                                        <a href="{% url 'eliminar_cita' cita.id %}" class="btn btn-sm btn-primary">
                                             <i class="bi bi-trash"></i> Eliminar
                                         </a>
                                     {% endif %}
@@ -201,7 +201,7 @@ function mostrarDetalleCita(cita) {
                     <i class="bi bi-info-circle"></i>
                     <strong>El diagnóstico completo está disponible en Mis Documentos</strong>
                 </div>
-                <a href="/mis-documentos/" class="btn btn-sm btn-danger" target="_blank">
+                <a href="/mis-documentos/" class="btn btn-sm btn-primary" target="_blank">
                     <i class="bi bi-file-earmark-text"></i> Ver Documentos
                 </a>
             </div>

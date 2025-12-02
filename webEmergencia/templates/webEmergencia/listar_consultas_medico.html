@@ -152,7 +152,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-danger" onclick="confirmarCancelacion()">
+                <button type="button" class="btn btn-primary" onclick="confirmarCancelacion()">
                     <i class="bi bi-trash"></i> Confirmar Cancelación
                 </button>
             </div>
@@ -219,7 +219,7 @@
                                         <input type="text" class="form-control horario" placeholder="Ej: Cada 8h por 3 días">
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="eliminarReceta(this)" style="display: none;">
+                                <button type="button" class="btn btn-sm btn-primary mt-2" onclick="eliminarReceta(this)" style="display: none;">
                                     <i class="bi bi-trash"></i> Eliminar
                                 </button>
                             </div>
@@ -349,7 +349,7 @@ function mostrarDetalleConsulta(consulta) {
     // boton cancelar (siempre disponible si no está ya cancelada o finalizada)
     if (consulta.estado !== 'cancelada' && consulta.estado !== 'finalizada') {
         botonesAccion += `
-            <button type="button" class="btn btn-danger btn-action" onclick="mostrarModalCancelar(${consulta.id})">
+            <button type="button" class="btn btn-primary btn-action" onclick="mostrarModalCancelar(${consulta.id})">
                 <i class="bi bi-x-circle"></i> Cancelar
             </button>
         `;
@@ -558,7 +558,7 @@ function agregarReceta() {
                 <input type="text" class="form-control horario" placeholder="Ej: Cada 8h por 3 días">
             </div>
         </div>
-        <button type="button" class="btn btn-sm btn-danger mt-2" onclick="eliminarReceta(this)">
+        <button type="button" class="btn btn-sm btn-primary mt-2" onclick="eliminarReceta(this)">
             <i class="bi bi-trash"></i> Eliminar
         </button>
     `;
@@ -576,7 +576,7 @@ function eliminarReceta(button) {
 
 function actualizarBotonesEliminar() {
     const recetas = document.querySelectorAll('.receta-row');
-    const botonesEliminar = document.querySelectorAll('.receta-row .btn-danger');
+    const botonesEliminar = document.querySelectorAll('.receta-row .btn-primary');
     
     if (recetas.length === 1) {
         botonesEliminar.forEach(btn => btn.style.display = 'none');

@@ -5,121 +5,21 @@
 
 {% block content %}
 
-<!-- Hero Section -->
+<!-- Hero Section - Full Screen Minimalista -->
 <div class="hero" style="background-image: linear-gradient(135deg, rgba(2, 132, 199, 0.85), rgba(10, 84, 139, 0.85)), url('{% static 'img/fondo_home.jpg' %}'); background-size: cover; background-position: center;">
     <div class="hero-content">
         <h1>Bienvenido a E-mergencia</h1>
         <p>Tu plataforma confiable para consultas médicas digitales. Conecta con especialistas calificados desde cualquier lugar.</p>
         
         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-            {% if request.session.user_rut %}
-                <a href="{% url 'agendar_nueva_cita' %}" class="btn btn-primary btn-lg">
-                    <i class="bi bi-calendar-plus"></i> Agendar Cita
-                </a>
-            {% else %}
-                <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
-                    <i class="bi bi-person-circle"></i> Soy Paciente
-                </button>
-                <button class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
-                    <i class="bi bi-stethoscope"></i> Soy Especialista
-                </button>
-            {% endif %}
+            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
+                <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+            </button>
+            <button class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
+                <i class="bi bi-person-plus"></i> Registrarse
+            </button>
         </div>
     </div>
 </div>
-
-<!-- Tarjetas de Beneficios -->
-<section style="padding: 4rem 0; background-color: #f8fafc;">
-    <div class="container">
-        <div style="text-align: center; margin-bottom: 3rem;">
-            <h2 style="color: #1e293b; font-weight: 800; margin-bottom: 0.5rem;">¿Por qué elegir E-mergencia?</h2>
-            <p style="color: #64748b; font-size: 1.1rem;">Somos la plataforma más confiable para consultas médicas digitales</p>
-        </div>
-
-        <div class="row g-4">
-            <!-- Beneficio 1 -->
-            <div class="col-md-4">
-                <div class="benefit-card">
-                    <div class="icon">⚡</div>
-                    <h3>Rápido y Eficiente</h3>
-                    <p>Reserva tu cita en minutos y recibe atención sin esperas innecesarias. Nuestro sistema es ágil y confiable.</p>
-                </div>
-            </div>
-
-            <!-- Beneficio 2 -->
-            <div class="col-md-4">
-                <div class="benefit-card">
-                    <div class="icon">🔒</div>
-                    <h3>100% Seguro</h3>
-                    <p>Tus datos médicos están protegidos con encriptación de nivel hospitalario. Privacidad garantizada.</p>
-                </div>
-            </div>
-
-            <!-- Beneficio 3 -->
-            <div class="col-md-4">
-                <div class="benefit-card">
-                    <div class="icon">📱</div>
-                    <h3>100% Digital</h3>
-                    <p>Accede desde cualquier dispositivo, en cualquier momento. Consultas, diagnósticos y recetas digitales.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Sección Adicional: Especialidades -->
-<section style="padding: 4rem 0;">
-    <div class="container">
-        <div style="text-align: center; margin-bottom: 3rem;">
-            <h2 style="color: #1e293b; font-weight: 800; margin-bottom: 0.5rem;">Especialidades Disponibles</h2>
-            <p style="color: #64748b; font-size: 1.1rem;">Contamos con médicos especialistas en las principales áreas</p>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-md-3 col-sm-6">
-                <div class="card text-center border-0 shadow-sm" style="padding: 2rem;">
-                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🏥</div>
-                    <h5>Medicina General</h5>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card text-center border-0 shadow-sm" style="padding: 2rem;">
-                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">❤️</div>
-                    <h5>Cardiología</h5>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card text-center border-0 shadow-sm" style="padding: 2rem;">
-                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🧠</div>
-                    <h5>Neurología</h5>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card text-center border-0 shadow-sm" style="padding: 2rem;">
-                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🦷</div>
-                    <h5>Odontología</h5>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- CTA Final -->
-<section style="padding: 3rem 0; background-color: #0284c7; color: white; text-align: center;">
-    <div class="container">
-        <h2 style="font-weight: 800; margin-bottom: 1rem;">¿Listo para tu primera consulta?</h2>
-        <p style="font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.95;">Únete a miles de pacientes que confían en nosotros</p>
-        
-        {% if not request.session.user_rut %}
-            <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
-                <i class="bi bi-arrow-right"></i> Comienza Ahora
-            </button>
-        {% else %}
-            <a href="{% url 'agendar_nueva_cita' %}" class="btn btn-light btn-lg">
-                <i class="bi bi-arrow-right"></i> Agendar Cita
-            </a>
-        {% endif %}
-    </div>
-</section>
 
 {% endblock %}
